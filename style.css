@@ -1,0 +1,318 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #05070d;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #fff;
+}
+
+body {
+    touch-action: none;
+}
+
+#game {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    display: block;
+    background: #05070d;
+}
+
+#hud {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.topbar {
+    position: absolute;
+    left: 22px;
+    right: 22px;
+    top: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.hudLeft {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.title {
+    font-size: 13px;
+    letter-spacing: 4px;
+    font-weight: bold;
+    opacity: .8;
+}
+
+.levelName {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-shadow: 0 0 18px rgba(100, 200, 255, .5);
+}
+
+.bars {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.bar {
+    width: 230px;
+    height: 12px;
+    border: 1px solid rgba(255, 255, 255, .3);
+    background: rgba(0, 0, 0, .5);
+    overflow: hidden;
+}
+
+.bar > div {
+    height: 100%;
+    width: 100%;
+    transition: width .12s linear;
+}
+
+#healthFill { background: linear-gradient(90deg, #ff334f, #ff7a54); }
+#energyFill { background: linear-gradient(90deg, #3ce7ff, #8b7cff); }
+#xpFill { background: linear-gradient(90deg, #ffd75a, #ff9b3d); }
+
+.hudRight {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    letter-spacing: 1px;
+}
+
+.stat {
+    background: rgba(4, 8, 16, .55);
+    border: 1px solid rgba(255, 255, 255, .1);
+    padding: 6px 10px;
+    backdrop-filter: blur(8px);
+}
+
+.weapon {
+    font-size: 18px;
+    font-weight: bold;
+    color: #63eaff;
+}
+
+#crosshair {
+    position: fixed;
+    width: 22px;
+    height: 22px;
+    pointer-events: none;
+    z-index: 20;
+    transform: translate(-50%, -50%);
+    display: none;
+}
+
+#crosshair:before, #crosshair:after {
+    content: "";
+    position: absolute;
+    background: #8ff6ff;
+    box-shadow: 0 0 8px #42eaff;
+}
+
+#crosshair:before { left: 10px; top: 0; width: 2px; height: 22px; }
+#crosshair:after { left: 0; top: 10px; width: 22px; height: 2px; }
+
+.crossDot {
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    width: 6px;
+    height: 6px;
+    border: 1px solid #fff;
+    border-radius: 50%;
+}
+
+#startScreen, #gameOver, #victory, #levelIntro {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background:
+        radial-gradient(circle at 50% 40%, rgba(20, 100, 150, .18), transparent 40%),
+        linear-gradient(180deg, rgba(2, 4, 10, .88), rgba(2, 4, 10, .97));
+}
+
+.panel {
+    width: min(720px, 92vw);
+    padding: 42px 32px;
+    border: 1px solid rgba(120, 220, 255, .22);
+    background: rgba(5, 10, 20, .72);
+    box-shadow: 0 0 80px rgba(0, 180, 255, .08), inset 0 0 50px rgba(255, 255, 255, .015);
+    backdrop-filter: blur(14px);
+}
+
+.logo {
+    font-size: clamp(42px, 8vw, 86px);
+    font-weight: 900;
+    letter-spacing: clamp(5px, 1.5vw, 14px);
+    line-height: .9;
+    text-shadow: 0 0 20px rgba(75, 220, 255, .5), 0 0 70px rgba(75, 120, 255, .25);
+}
+
+.tagline { margin-top: 18px; color: #8ca5ba; font-size: 13px; letter-spacing: 4px; }
+.story { margin: 24px auto; max-width: 570px; line-height: 1.7; color: #b9c8d5; font-size: 14px; }
+
+.buttonRow {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+button {
+    border: 1px solid rgba(100, 230, 255, .45);
+    background: rgba(20, 120, 160, .15);
+    color: white;
+    padding: 13px 24px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: .2s;
+}
+
+button:hover {
+    background: rgba(60, 200, 255, .25);
+    transform: translateY(-2px);
+    box-shadow: 0 0 25px rgba(60, 220, 255, .15);
+}
+
+.controls { margin-top: 25px; color: #708493; font-size: 11px; line-height: 1.8; }
+.hidden { display: none !important; }
+
+#levelIntro { background: rgba(2, 4, 9, .68); pointer-events: none; }
+.introTitle { font-size: clamp(30px, 6vw, 62px); font-weight: 900; letter-spacing: 6px; }
+.introSub { margin-top: 12px; color: #66e9ff; letter-spacing: 3px; font-size: 12px; }
+
+#message {
+    position: fixed;
+    left: 50%;
+    bottom: 12%;
+    transform: translateX(-50%);
+    z-index: 30;
+    padding: 10px 18px;
+    background: rgba(0, 0, 0, .65);
+    border: 1px solid rgba(120, 230, 255, .2);
+    color: #d8f8ff;
+    letter-spacing: 2px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity .2s;
+    pointer-events: none;
+}
+
+#mobileControls {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    pointer-events: none;
+}
+
+.pad {
+    position: absolute;
+    width: 145px;
+    height: 145px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, .15);
+    background: rgba(255, 255, 255, .035);
+    pointer-events: auto;
+}
+
+#movePad { left: 20px; bottom: 22px; }
+#aimPad { right: 20px; bottom: 22px; }
+
+.knob {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 62px;
+    height: 62px;
+    margin: -31px;
+    border-radius: 50%;
+    background: rgba(90, 220, 255, .15);
+    border: 1px solid rgba(100, 235, 255, .5);
+    box-shadow: 0 0 25px rgba(50, 210, 255, .1);
+}
+
+.mobileButton {
+    position: absolute;
+    pointer-events: auto;
+    border-radius: 50%;
+    width: 62px;
+    height: 62px;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 10px;
+    letter-spacing: 1px;
+    background: rgba(5, 12, 22, .7);
+    border: 1px solid rgba(100, 220, 255, .35);
+}
+
+#jumpBtn { right: 190px; bottom: 105px; }
+#fireBtn { right: 190px; bottom: 30px; }
+#weaponBtn { right: 116px; bottom: 182px; }
+#echoBtn { right: 40px; bottom: 182px; }
+
+@media(max-width: 800px) {
+    .topbar { left: 10px; right: 10px; top: 9px; }
+    .levelName { font-size: 16px; }
+    .bar { width: 150px; height: 9px; }
+    .hudRight { font-size: 10px; }
+    .weapon { font-size: 14px; }
+    #mobileControls { display: block; }
+    #crosshair { display: none; }
+    .controls { display: none; }
+}
+
+@media(max-width: 560px) {
+    .pad { width: 125px; height: 125px; }
+    .knob { width: 52px; height: 52px; margin: -26px; }
+    #movePad { left: 10px; bottom: 12px; }
+    #aimPad { right: 10px; bottom: 12px; }
+    #jumpBtn { right: 160px; bottom: 95px; }
+    #fireBtn { right: 160px; bottom: 25px; }
+    #weaponBtn { right: 92px; bottom: 160px; }
+    #echoBtn { right: 20px; bottom: 160px; }
+    .title { font-size: 9px; }
+    .levelName { font-size: 13px; }
+    .hudRight .stat:nth-child(2) { display: none; }
+}
+
+@media(orientation: portrait) and (max-width: 800px) {
+    #mobileControls:after {
+        content: "ROTATE YOUR PHONE FOR THE BEST EXPERIENCE";
+        position: absolute;
+        left: 50%;
+        top: 18%;
+        transform: translateX(-50%);
+        width: 80%;
+        text-align: center;
+        font-size: 10px;
+        letter-spacing: 2px;
+        color: rgba(255, 255, 255, .35);
+        pointer-events: none;
+    }
+}
