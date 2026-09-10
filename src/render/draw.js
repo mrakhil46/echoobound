@@ -285,6 +285,7 @@ function drawEnemy(ctx, enemy) {
     else if (enemy.type === "sentinel") drawSentinel(ctx, enemy);
     else if (enemy.type === "mimic") drawMimic(ctx, enemy);
     else if (enemy.type === "warden") drawWarden(ctx, enemy);
+    else if (enemy.type === "drone") drawDrone(ctx, enemy);
 
     ctx.restore();
 
@@ -372,6 +373,39 @@ function drawMimic(ctx, e) {
     ctx.beginPath();
     ctx.arc(e.x + e.w / 2, e.y - 20, 4, 0, Math.PI * 2);
     ctx.fill();
+}
+
+function drawDrone(ctx, e) {
+    const cx = e.x + e.w / 2;
+    const cy = e.y + e.h / 2;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // Thruster glow
+    ctx.fillStyle = "rgba(80, 220, 255, 0.4)";
+    ctx.beginPath();
+    ctx.arc(0, 12, 10 + Math.sin(e.anim * 3) * 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Drone chassis
+    ctx.fillStyle = "#1e293b";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 18, 11, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#38bdf8";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Center eye sensor
+    ctx.fillStyle = "#ef4444";
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = "#ef4444";
+    ctx.beginPath();
+    ctx.arc(0, 0, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
 }
 
 function drawWarden(ctx, e) {

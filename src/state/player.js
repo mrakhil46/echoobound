@@ -31,7 +31,9 @@ export const player = {
     justTeleported: false,
     coyoteTimer: 0,
     jumpBufferTimer: 0,
-    jumpHeld: false
+    jumpHeld: false,
+    onWall: 0,
+    wallSlideSpeed: 2.2
 };
 
 export function resetPlayer() {
@@ -120,13 +122,24 @@ export function updatePlayer(worldWidth, onShoot, onDeployEcho) {
         player.jumpBufferTimer = 0;
     }
 
-    // 3. Variable Jump Height: cut upward velocity if jump key released early
+    else if (player.jumpBufferTimer > 0 && player.onWall !== 0 && !player.grounded) {
+        player.vy = -player.jump * 0.95;
+        player.vx = -player.onWall * (player.speed * 1.6); // Kick away from wall
+        player.facing = -player.onWall;
+        player.jumpBufferTimer = 0;
+        player.onWall = 0;
+    }
+    // Variable Jump Height: cut upward velocity if jump key released early
     if (!isJumpPressed && player.vy < -3) {
         player.vy *= 0.5;
     }
 
-    player.vy += 0.65;
-    player.vy = Math.min(player.vy, 18);
+    if (player.onWall !== 0 && player.vy > 0 && move === player.onWall) {
+        player.vy = Math.min(player.vy + 0.25, player.wallSlideSpeed); // Gentle slide
+    } else {
+        player.vy += 0.65;
+        player.vy = Math.min(player.vy, 18);
+    }
 
     player.x += player.vx;
     player.y += player.vy;

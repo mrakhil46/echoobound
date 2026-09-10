@@ -1,6 +1,7 @@
 import { clamp, rand, rectsOverlap } from "../utils/math.js";
 import { LEVELS } from "../config/levels.js";
-import { gameState } from "../state/game.js";
+import { WEAPONS } from "../config/weapons.js";
+import { gameState, triggerHitStop } from "../state/game.js";
 import { gainXP } from "../state/player.js";
 import { resolveEnemyPlatforms } from "../systems/collisions.js";
 import { createDeathParticles, createHitParticles } from "../systems/particles.js";
@@ -8,7 +9,6 @@ import { enemyBullets } from "./bullet.js";
 import { showMessage } from "../render/hud.js";
 import { playSound } from "../systems/audio.js";
 import { echoes } from "./echo.js";
-import { triggerHitStop } from "../state/game.js";
 
 export const enemies = [];
 
@@ -19,7 +19,8 @@ export function spawnEnemies(worldWidth) {
 
     for (let i = 0; i < count; i++) {
         const x = 850 + (i * (worldWidth - 1400)) / Math.max(1, count - 1);
-        const type = i % 3 === 0 ? "crawler" : i % 3 === 1 ? "sentinel" : "mimic";
+        const roll = i % 4;
+        const type = roll === 0 ? "crawler" : roll === 1 ? "sentinel" : roll === 2 ? "mimic" : "drone";
         enemies.push(createEnemy(type, x));
     }
 
@@ -32,7 +33,7 @@ export function createEnemy(type, x) {
     const base = {
         type,
         x,
-        y: 380,
+        y: type === "drone" ? randInt(500, 900) : 1300,
         w: 48,
         h: 64,
         vx: 0,
@@ -44,7 +45,8 @@ export function createEnemy(type, x) {
         grounded: false,
         dead: false,
         hitFlash: 0,
-        anim: rand(0, 10)
+        anim: rand(0, 10),
+        clonedWeapon: 0 // Mimic active gun index
     };
 
     if (type === "crawler") {
@@ -62,9 +64,15 @@ export function createEnemy(type, x) {
     } else if (type === "mimic") {
         base.w = 54;
         base.h = 68;
-        base.health = 115;
-        base.maxHealth = 115;
-        base.speed = 1;
+        base.health = 120;
+        base.maxHealth = 120;
+        base.speed = 1.4;
+    } else if (type === "drone") {
+        base.w = 40;
+        base.h = 36;
+        base.health = 60;
+        base.maxHealth = 60;
+        base.speed = 2.2;
     }
     return base;
 }
@@ -73,7 +81,7 @@ export function spawnBoss(worldWidth) {
     enemies.push({
         type: "warden",
         x: worldWidth - 1050,
-        y: 300,
+        y: 1100,
         w: 110,
         h: 150,
         vx: 0,
@@ -90,36 +98,6 @@ export function spawnBoss(worldWidth) {
     });
 }
 
-export function damageEnemy(enemy, amount, onBossDefeated) {
-    if (enemy.dead) return;
-    enemy.health -= amount;
-    enemy.hitFlash = 5;
-    createHitParticles(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2);
-    playSound("hit");
-
-    if (enemy.health <= 0) {
-        killEnemy(enemy, onBossDefeated);
-    }
-}
-
-export function killEnemy(enemy, onBossDefeated) {
-    if (enemy.dead) return;
-    enemy.dead = true;
-    gameState.score += enemy.boss ? 5000 : 150;
-    gainXP(enemy.boss ? 1000 : 100);
-    createDeathParticles(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, enemy.boss);
-
-    if (enemy.boss) {
-        triggerHitStop(10);
-        showMessage("RIFT WARDEN DESTROYED — CORE UNLOCKED", 120);
-        if (onBossDefeated) onBossDefeated();
-    }else{
-        triggerHitStop(2);
-    }
-}
-
-
-
 export function updateEnemies(player, platforms, worldWidth, onDamagePlayer) {
     for (const enemy of enemies) {
         if (enemy.dead) continue;
@@ -127,37 +105,64 @@ export function updateEnemies(player, platforms, worldWidth, onDamagePlayer) {
 
         const target = getClosestTarget(enemy, player);
         const dx = target.x - (enemy.x + enemy.w / 2);
-        const distance = Math.abs(dx);
+        const dy = target.y - (enemy.y + enemy.h / 2);
+        const distance = Math.hypot(dx, dy);
 
         if (enemy.type === "warden") {
             updateBoss(enemy, player, onDamagePlayer);
             continue;
         }
 
-        if (distance < 900) {
-            enemy.vx = Math.sign(dx) * enemy.speed;
-            if (distance < 480) enemy.attack--;
+        // Flying Drone AI: Floats, hovers at a vertical distance, dive-bombs/shoots
+        if (enemy.type === "drone") {
+            const hoverY = target.y - 180 + Math.sin(enemy.anim * 1.5) * 40;
+            enemy.vx = lerp(enemy.vx, Math.sign(dx) * enemy.speed, 0.05);
+            enemy.vy = lerp(enemy.vy, Math.sign(hoverY - enemy.y) * enemy.speed, 0.05);
 
+            enemy.x += enemy.vx;
+            enemy.y += enemy.vy;
+
+            enemy.attack--;
             if (enemy.attack <= 0 && distance < 650) {
-                enemy.attack = enemy.type === "sentinel" ? 110 : 150;
-                fireEnemyAtTarget(enemy, target);
+                enemy.attack = 90;
+                fireDrone(enemy, target);
             }
-        } else {
-            enemy.vx *= 0.92;
+        } 
+        // Ground-based enemies
+        else {
+            if (distance < 900) {
+                enemy.vx = Math.sign(dx) * enemy.speed;
+                if (distance < 550) enemy.attack--;
+
+                if (enemy.attack <= 0) {
+                    // Mimic copies player weapon rate & ammo style
+                    if (enemy.type === "mimic") {
+                        enemy.clonedWeapon = gameState.weaponIndex;
+                        const copiedWep = WEAPONS[enemy.clonedWeapon];
+                        enemy.attack = copiedWep.cooldown * 1.5;
+                        fireMimicCopiedWeapon(enemy, target, copiedWep);
+                    } else {
+                        enemy.attack = enemy.type === "sentinel" ? 110 : 140;
+                        fireEnemyAtTarget(enemy, target);
+                    }
+                }
+            } else {
+                enemy.vx *= 0.92;
+            }
+
+            const oldY = enemy.y;
+            enemy.vy += 0.65;
+            enemy.vy = Math.min(enemy.vy, 16);
+            enemy.x += enemy.vx;
+            enemy.y += enemy.vy;
+            enemy.x = clamp(enemy.x, 0, worldWidth - enemy.w);
+
+            resolveEnemyPlatforms(enemy, oldY, platforms);
         }
 
-        const oldY = enemy.y;
-        enemy.vy += 0.65;
-        enemy.vy = Math.min(enemy.vy, 16);
-        enemy.x += enemy.vx;
-        enemy.y += enemy.vy;
-        enemy.x = clamp(enemy.x, 0, worldWidth - enemy.w);
-
-        resolveEnemyPlatforms(enemy, oldY, platforms);
-
-        // Melee collision against player or echo
+        // Collisions
         if (rectsOverlap(player, enemy)) {
-            onDamagePlayer(enemy.type === "crawler" ? 12 : 18);
+            onDamagePlayer(enemy.type === "crawler" ? 14 : 18);
         }
         for (const echo of echoes) {
             const echoRect = { x: echo.x - echo.w / 2, y: echo.y - echo.h / 2, w: echo.w, h: echo.h };
@@ -170,47 +175,49 @@ export function updateEnemies(player, platforms, worldWidth, onDamagePlayer) {
     }
 }
 
-function getClosestTarget(enemy, player) {
-    let target = {
-        x: player.x + player.w / 2,
-        y: player.y + player.h / 2,
-        ref: player,
-        isEcho: false
-    };
-    let minDistance = Math.hypot(enemy.x - target.x, enemy.y - target.y);
+function fireDrone(enemy, target) {
+    const sx = enemy.x + enemy.w / 2;
+    const sy = enemy.y + enemy.h / 2;
+    const angle = Math.atan2(target.y - sy, target.x - sx);
 
-    for (const echo of echoes) {
-        const dist = Math.hypot(enemy.x - echo.x, enemy.y - echo.y);
-        // Echo draws primary aggro if it is closer or within 500px
-        if (dist < minDistance || dist < 500) {
-            minDistance = dist;
-            target = {
-                x: echo.x,
-                y: echo.y,
-                ref: echo,
-                isEcho: true
-            };
-        }
-    }
-    return target;
+    enemyBullets.push({
+        x: sx,
+        y: sy,
+        vx: Math.cos(angle) * 7,
+        vy: Math.sin(angle) * 7,
+        life: 110,
+        damage: 10,
+        size: 4
+    });
+}
+
+function fireMimicCopiedWeapon(enemy, target, wep) {
+    const sx = enemy.x + enemy.w / 2;
+    const sy = enemy.y + enemy.h / 2;
+    const angle = Math.atan2(target.y - sy, target.x - sx) + rand(-wep.spread, wep.spread);
+
+    enemyBullets.push({
+        x: sx,
+        y: sy,
+        vx: Math.cos(angle) * (wep.speed * 0.75),
+        vy: Math.sin(angle) * (wep.speed * 0.75),
+        life: 120,
+        damage: Math.floor(wep.damage * 0.4),
+        size: wep.size
+    });
 }
 
 function updateBoss(enemy, player, onDamagePlayer) {
     const dx = player.x - enemy.x;
     enemy.vx = Math.sign(dx) * enemy.speed;
     enemy.vy += 0.4;
-    enemy.vy = Math.min(enemy.vy, 14);
-
     enemy.x += enemy.vx;
     enemy.y += enemy.vy;
 
-    // Fix floor height: the ground platform top is at y = 560
-    if (enemy.y + enemy.h >= 560) {
-        enemy.y = 560 - enemy.h;
+    if (enemy.y + enemy.h >= 1400) {
+        enemy.y = 1400 - enemy.h;
         enemy.vy = 0;
         enemy.grounded = true;
-
-        // Periodic jump towards the player
         if (Math.random() < 0.02) {
             enemy.vy = -11;
             enemy.grounded = false;
@@ -257,4 +264,56 @@ function fireEnemyAtTarget(enemy, target) {
         damage: enemy.type === "sentinel" ? 12 : 9,
         size: 5
     });
+}
+
+function getClosestTarget(enemy, player) {
+    let target = {
+        x: player.x + player.w / 2,
+        y: player.y + player.h / 2,
+        ref: player,
+        isEcho: false
+    };
+    let minDistance = Math.hypot(enemy.x - target.x, enemy.y - target.y);
+
+    for (const echo of echoes) {
+        const dist = Math.hypot(enemy.x - echo.x, enemy.y - echo.y);
+        if (dist < minDistance || dist < 500) {
+            minDistance = dist;
+            target = {
+                x: echo.x,
+                y: echo.y,
+                ref: echo,
+                isEcho: true
+            };
+        }
+    }
+    return target;
+}
+
+export function damageEnemy(enemy, amount, onBossDefeated) {
+    if (enemy.dead) return;
+    enemy.health -= amount;
+    enemy.hitFlash = 5;
+    createHitParticles(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2);
+    playSound("hit");
+
+    if (enemy.health <= 0) {
+        killEnemy(enemy, onBossDefeated);
+    }
+}
+
+export function killEnemy(enemy, onBossDefeated) {
+    if (enemy.dead) return;
+    enemy.dead = true;
+    gameState.score += enemy.boss ? 5000 : 150;
+    gainXP(enemy.boss ? 1000 : 100);
+    createDeathParticles(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, enemy.boss);
+
+    if (enemy.boss) {
+        triggerHitStop(10);
+        showMessage("RIFT WARDEN DESTROYED — CORE UNLOCKED", 120);
+        if (onBossDefeated) onBossDefeated();
+    } else {
+        triggerHitStop(2);
+    }
 }

@@ -120,7 +120,14 @@ function update() {
         () => shoot(player, gameState, mobile, mouse),
         frames => deployEcho(frames)
     );
-    resolvePlayerPlatforms(player, oldY, world.platforms);
+    resolvePlayerPlatforms(player, oldY, world.platforms, () => {
+        damagePlayer(35, gameOver);
+        player.x = 220;
+        player.y = 1300;
+        player.vx = 0;
+        player.vy = 0;
+        showMessage("FALLEN INTO THE VOID", 40);
+    });
 
     updateEnemies(player, world.platforms, world.width, amt => damagePlayer(amt, gameOver));
     updateBullets(world.width, enemies, (enemy, dmg) => {

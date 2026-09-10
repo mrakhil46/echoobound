@@ -1,7 +1,8 @@
 import { rectsOverlap } from "../utils/math.js";
 
-export function resolvePlayerPlatforms(player, oldY, platforms) {
+export function resolvePlayerPlatforms(player, oldY, platforms, onPitFall) {
     player.grounded = false;
+    player.onWall = 0;
 
     // If the player teleported this tick, ignore old swept position and snap to overlapping platform top
     if (player.justTeleported) {
@@ -29,6 +30,26 @@ export function resolvePlayerPlatforms(player, oldY, platforms) {
             player.vy = 0;
             player.grounded = true;
         }
+
+        // Wall sliding detection (sides of ground blocks)
+            if (p.type === "ground") {
+                const vertical = player.y + player.h > p.y + 8 && player.y < p.y + p.h;
+                if (vertical) {
+                    // Touching left side of platform
+                    if (Math.abs(player.x + player.w - p.x) < 5) {
+                        player.onWall = 1;
+                    }
+                    // Touching right side of platform
+                    else if (Math.abs(player.x - (p.x + p.w)) < 5) {
+                        player.onWall = -1;
+                    }
+                }
+            }
+    }
+
+    // Pit Hazard: Falling beneath the map kills the player
+    if (player.y > 1580) {
+        if (onPitFall) onPitFall();
     }
 
     if (player.y + player.h > 880) {
