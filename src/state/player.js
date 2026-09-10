@@ -36,11 +36,11 @@ export const player = {
     wallSlideSpeed: 2.2
 };
 
-export function resetPlayer() {
+export function resetPlayer(spawnX = 180, spawnY = 1200) {
     player.health = player.maxHealth;
     player.energy = player.maxEnergy;
-    player.x = 260;
-    player.y = 350;
+    player.x = spawnX;
+    player.y = spawnY;
     player.vx = 0;
     player.vy = 0;
     player.grounded = false;
