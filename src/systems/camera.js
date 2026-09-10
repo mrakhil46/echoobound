@@ -13,13 +13,13 @@ export function addShake(amount) {
 
 export function updateCamera(player, worldWidth, viewportW, viewportH) {
     const targetX = player.x - viewportW * 0.42;
-    const targetY = player.y - viewportH * 0.52;
+    const targetY = player.y - viewportH * 0.55;
 
     camera.x = lerp(camera.x, targetX, 0.09);
     camera.y = lerp(camera.y, targetY, 0.08);
 
     camera.x = clamp(camera.x, 0, Math.max(0, worldWidth - viewportW));
-    camera.y = clamp(camera.y, 0, 300);
+    camera.y = clamp(camera.y, 0, Math.max(0, 1600 - viewportH));
 
     mouse.worldX = mouse.screenX + camera.x;
     mouse.worldY = mouse.screenY + camera.y;

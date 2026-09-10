@@ -138,6 +138,7 @@ function update() {
     updateEnemyBullets(world.width, player, amt => damagePlayer(amt, gameOver));
     updateEchoes();
     
+    // Update switches (activated by player or echo presence)
     for (const sw of world.switches) {
         const swBox = { x: sw.x, y: sw.y - 40, w: 28, h: 40 };
 
@@ -150,7 +151,16 @@ function update() {
             if (!sw.active) {
                 sw.active = true;
                 playSound("shard");
-                showMessage("SWITCH ENGAGED", 30);
+                showMessage("CIRCUIT OVERRIDE ACTIVATED", 35);
+
+                // Check if all switches in the zone are now active
+                const totalActive = world.switches.filter(s => s.active).length;
+                if (totalActive === world.switches.length) {
+                    world.gate.open = true;
+                    player.energy = player.maxEnergy;
+                    showMessage("ALL CIRCUITS ONLINE — RIFT GATE UNLOCKED", 90);
+                    playSound("shard");
+                }
             }
         }
     }

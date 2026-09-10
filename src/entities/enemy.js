@@ -1,4 +1,4 @@
-import { clamp, rand, rectsOverlap } from "../utils/math.js";
+import { clamp, rand, rectsOverlap, randInt } from "../utils/math.js";
 import { LEVELS } from "../config/levels.js";
 import { WEAPONS } from "../config/weapons.js";
 import { gameState, triggerHitStop } from "../state/game.js";
@@ -19,8 +19,8 @@ export function spawnEnemies(worldWidth) {
 
     for (let i = 0; i < count; i++) {
         const x = 850 + (i * (worldWidth - 1400)) / Math.max(1, count - 1);
-        const roll = i % 4;
-        const type = roll === 0 ? "crawler" : roll === 1 ? "sentinel" : roll === 2 ? "mimic" : "drone";
+        const types = ["crawler", "sentinel", "mimic", "drone"];
+        const type = types[i % types.length];
         enemies.push(createEnemy(type, x));
     }
 
@@ -150,14 +150,21 @@ export function updateEnemies(player, platforms, worldWidth, onDamagePlayer) {
                 enemy.vx *= 0.92;
             }
 
-            const oldY = enemy.y;
-            enemy.vy += 0.65;
-            enemy.vy = Math.min(enemy.vy, 16);
-            enemy.x += enemy.vx;
-            enemy.y += enemy.vy;
-            enemy.x = clamp(enemy.x, 0, worldWidth - enemy.w);
+            // Only ground-based enemies receive gravity and platform collision
+            if (enemy.type !== "drone") {
+                const oldY = enemy.y;
+                enemy.vy += 0.65;
+                enemy.vy = Math.min(enemy.vy, 16);
+                enemy.x += enemy.vx;
+                enemy.y += enemy.vy;
+                enemy.x = clamp(enemy.x, 0, worldWidth - enemy.w);
 
-            resolveEnemyPlatforms(enemy, oldY, platforms);
+                resolveEnemyPlatforms(enemy, oldY, platforms);
+            } else {
+                // Drone floating physics
+                enemy.x = clamp(enemy.x, 0, worldWidth - enemy.w);
+                enemy.y = clamp(enemy.y, 200, 1300);
+            }
         }
 
         // Collisions
