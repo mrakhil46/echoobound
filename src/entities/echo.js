@@ -10,25 +10,39 @@ export const echoes = [];
 export function activateEcho() {
     if (!gameState.gameRunning) return;
 
-    // 1. If an Echo exists, pressing E swaps position with the newest Echo
     if (echoes.length > 0 && !player.echoRecording) {
-        const targetEcho = echoes[echoes.length - 1];
+    const targetEcho = echoes[echoes.length - 1];
 
-        const tempX = player.x;
-        const tempY = player.y;
+    // Read previous positions
+    const oldPlayerX = player.x;
+    const oldPlayerY = player.y;
 
-        player.x = targetEcho.x - player.w / 2;
-        player.y = targetEcho.y - player.h / 2;
-        player.vx = 0;
-        player.vy = 0;
+    // Teleport player to echo position, slightly raised (-4px) to guarantee landing on top of platforms
+    player.x = targetEcho.x - player.w / 2;
+    player.y = targetEcho.y - player.h / 2 - 4;
+    player.vx = 0;
+    player.vy = 0;
+    player.grounded = false;
 
-        targetEcho.x = tempX + player.w / 2;
-        targetEcho.y = tempY + player.h / 2;
+    // Move Echo to player's previous spot
+    targetEcho.x = oldPlayerX + player.w / 2;
+    targetEcho.y = oldPlayerY + player.h / 2;
 
-        createHitParticles(player.x + player.w / 2, player.y + player.h / 2);
-        playSound("shard");
-        showMessage("ECHO PHASE SWAP", 40);
-        return;
+    // CRITICAL: Update remaining recording frames so echo playback doesn't immediately snap back
+    const dx = (oldPlayerX + player.w / 2) - targetEcho.x;
+    const dy = (oldPlayerY + player.h / 2) - targetEcho.y;
+
+    for (let i = targetEcho.frame; i < targetEcho.frames.length; i++) {
+        if (typeof targetEcho.frames[i].x === "number") {
+            targetEcho.frames[i].x += dx;
+            targetEcho.frames[i].y += dy;
+        }
+    }
+
+    createHitParticles(player.x + player.w / 2, player.y + player.h / 2);
+    playSound("shard");
+    showMessage("ECHO PHASE SWAP", 40);
+    return;
     }
 
     // 2. Stop recording and deploy
