@@ -6,7 +6,8 @@ export const WEAPONS = [
         cooldown: 9,
         spread: 0.025,
         energy: 2,
-        size: 3
+        size: 3,
+        recoil: 1.2
     },
     {
         name: "ARC BLASTER",
@@ -15,7 +16,8 @@ export const WEAPONS = [
         cooldown: 20,
         spread: 0.06,
         energy: 5,
-        size: 5
+        size: 5,
+        recoil: 3.5
     },
     {
         name: "VOID CANNON",
@@ -24,6 +26,7 @@ export const WEAPONS = [
         cooldown: 36,
         spread: 0.015,
         energy: 12,
-        size: 8
+        size: 8,
+        recoil: 9.0
     }
 ];

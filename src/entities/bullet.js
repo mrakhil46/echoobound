@@ -5,6 +5,7 @@ import { addShake } from "../systems/camera.js";
 import { showMessage } from "../render/hud.js";
 import { playSound } from "../systems/audio.js";
 import { echoes } from "./echo.js";
+import { triggerHitStop } from "../state/game.js";
 
 export const bullets = [];
 export const enemyBullets = [];
@@ -60,6 +61,11 @@ export function shoot(player, gameState, mobile, mouse) {
         weapon: gameState.weaponIndex
     });
 
+    player.vx -= Math.cos(angle) * weapon.recoil;
+    if (Math.sin(angle) > 0.4 && !player.grounded) {
+        player.vy -= Math.sin(angle) * (weapon.recoil * 0.4); // Slight rocket-jump effect
+    }
+
     createMuzzleFlash(startX, startY, angle);
     addShake(2);
     playSound("shoot");
@@ -88,6 +94,9 @@ export function updateBullets(worldWidth, enemies, onDamageEnemy) {
                 const point = { x: b.x - b.size, y: b.y - b.size, w: b.size * 2, h: b.size * 2 };
 
                 if (rectsOverlap(point, hitbox)) {
+                    if(b.weapon === 2){
+                        triggerHitStop(5);
+                    }
                     onDamageEnemy(enemy, b.damage);
                     remove = true;
                     break;

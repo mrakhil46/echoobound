@@ -27,7 +27,11 @@ export const player = {
     echoFrames: [],
     echoTimer: 0,
     gunFlash: 0,
-    anim: 0
+    anim: 0,
+    justTeleported: false,
+    coyoteTimer: 0,
+    jumpBufferTimer: 0,
+    jumpHeld: false
 };
 
 export function resetPlayer() {
@@ -88,9 +92,37 @@ export function updatePlayer(worldWidth, onShoot, onDeployEcho) {
 
     player.vx = lerp(player.vx, move * player.speed, 0.18);
 
-    if ((keys["Space"] || keys["KeyW"] || keys["ArrowUp"] || mobile.jump) && player.grounded) {
+    // 1. Coyote Time tracking
+    if (player.grounded) {
+        player.coyoteTimer = 6; // ~100ms grace window
+    } else if (player.coyoteTimer > 0) {
+        player.coyoteTimer--;
+    }
+
+    // 2. Jump Buffering input detection
+    const isJumpPressed = keys["Space"] || keys["KeyW"] || keys["ArrowUp"] || mobile.jump;
+
+    // Detect fresh jump press
+    if (isJumpPressed && !player.jumpHeld) {
+        player.jumpBufferTimer = 6; // Store input for 6 frames
+    }
+    player.jumpHeld = isJumpPressed;
+
+    if (player.jumpBufferTimer > 0) {
+        player.jumpBufferTimer--;
+    }
+
+    // Execute Jump if buffered and coyote window is open
+    if (player.jumpBufferTimer > 0 && player.coyoteTimer > 0) {
         player.vy = -player.jump;
         player.grounded = false;
+        player.coyoteTimer = 0;
+        player.jumpBufferTimer = 0;
+    }
+
+    // 3. Variable Jump Height: cut upward velocity if jump key released early
+    if (!isJumpPressed && player.vy < -3) {
+        player.vy *= 0.5;
     }
 
     player.vy += 0.65;

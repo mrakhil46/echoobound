@@ -8,6 +8,7 @@ import { enemyBullets } from "./bullet.js";
 import { showMessage } from "../render/hud.js";
 import { playSound } from "../systems/audio.js";
 import { echoes } from "./echo.js";
+import { triggerHitStop } from "../state/game.js";
 
 export const enemies = [];
 
@@ -109,8 +110,11 @@ export function killEnemy(enemy, onBossDefeated) {
     createDeathParticles(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, enemy.boss);
 
     if (enemy.boss) {
+        triggerHitStop(10);
         showMessage("RIFT WARDEN DESTROYED — CORE UNLOCKED", 120);
         if (onBossDefeated) onBossDefeated();
+    }else{
+        triggerHitStop(2);
     }
 }
 

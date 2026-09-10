@@ -172,7 +172,11 @@ makeWorld(() => spawnEnemies(world.width));
 updateHUD(player, gameState);
 
 function loop() {
-    update();
+    if(gameState.hitStop > 0){
+        gameState.hitStop--;
+    }else{
+        update();
+    }
     draw(
         ctx,
         gameState.viewportW,

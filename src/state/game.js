@@ -11,7 +11,8 @@ export const gameState = {
     weaponIndex: 0,
     viewportW: 1280,
     viewportH: 720,
-    dpr: 1
+    dpr: 1,
+    hitStop: 0
 };
 
 export function resetGameState() {
@@ -21,4 +22,8 @@ export function resetGameState() {
     gameState.playerLevel = 1;
     gameState.weaponIndex = 0;
     gameState.levelIndex = 0;
+}
+
+export function triggerHitStop(frames = 4) {
+    gameState.hitStop = Math.max(gameState.hitStop, frames);
 }
