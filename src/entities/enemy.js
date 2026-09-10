@@ -7,6 +7,7 @@ import { createDeathParticles, createHitParticles } from "../systems/particles.j
 import { enemyBullets } from "./bullet.js";
 import { showMessage } from "../render/hud.js";
 import { playSound } from "../systems/audio.js";
+import { echoes } from "./echo.js";
 
 export const enemies = [];
 
@@ -88,7 +89,7 @@ export function spawnBoss(worldWidth) {
     });
 }
 
-export function damageEnemy(enemy, amount) {
+export function damageEnemy(enemy, amount, onBossDefeated) {
     if (enemy.dead) return;
     enemy.health -= amount;
     enemy.hitFlash = 5;
@@ -96,11 +97,11 @@ export function damageEnemy(enemy, amount) {
     playSound("hit");
 
     if (enemy.health <= 0) {
-        killEnemy(enemy);
+        killEnemy(enemy, onBossDefeated);
     }
 }
 
-export function killEnemy(enemy) {
+export function killEnemy(enemy, onBossDefeated) {
     if (enemy.dead) return;
     enemy.dead = true;
     gameState.score += enemy.boss ? 5000 : 150;
@@ -108,15 +109,20 @@ export function killEnemy(enemy) {
     createDeathParticles(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, enemy.boss);
 
     if (enemy.boss) {
-        showMessage("RIFT WARDEN DESTROYED", 100);
+        showMessage("RIFT WARDEN DESTROYED — CORE UNLOCKED", 120);
+        if (onBossDefeated) onBossDefeated();
     }
 }
+
+
 
 export function updateEnemies(player, platforms, worldWidth, onDamagePlayer) {
     for (const enemy of enemies) {
         if (enemy.dead) continue;
         enemy.anim += 0.1;
-        const dx = player.x - enemy.x;
+
+        const target = getClosestTarget(enemy, player);
+        const dx = target.x - (enemy.x + enemy.w / 2);
         const distance = Math.abs(dx);
 
         if (enemy.type === "warden") {
@@ -130,7 +136,7 @@ export function updateEnemies(player, platforms, worldWidth, onDamagePlayer) {
 
             if (enemy.attack <= 0 && distance < 650) {
                 enemy.attack = enemy.type === "sentinel" ? 110 : 150;
-                fireEnemy(enemy, player);
+                fireEnemyAtTarget(enemy, target);
             }
         } else {
             enemy.vx *= 0.92;
@@ -145,23 +151,66 @@ export function updateEnemies(player, platforms, worldWidth, onDamagePlayer) {
 
         resolveEnemyPlatforms(enemy, oldY, platforms);
 
+        // Melee collision against player or echo
         if (rectsOverlap(player, enemy)) {
             onDamagePlayer(enemy.type === "crawler" ? 12 : 18);
         }
+        for (const echo of echoes) {
+            const echoRect = { x: echo.x - echo.w / 2, y: echo.y - echo.h / 2, w: echo.w, h: echo.h };
+            if (rectsOverlap(echoRect, enemy)) {
+                echo.health -= 1.5;
+            }
+        }
+
         if (enemy.hitFlash > 0) enemy.hitFlash--;
     }
+}
+
+function getClosestTarget(enemy, player) {
+    let target = {
+        x: player.x + player.w / 2,
+        y: player.y + player.h / 2,
+        ref: player,
+        isEcho: false
+    };
+    let minDistance = Math.hypot(enemy.x - target.x, enemy.y - target.y);
+
+    for (const echo of echoes) {
+        const dist = Math.hypot(enemy.x - echo.x, enemy.y - echo.y);
+        // Echo draws primary aggro if it is closer or within 500px
+        if (dist < minDistance || dist < 500) {
+            minDistance = dist;
+            target = {
+                x: echo.x,
+                y: echo.y,
+                ref: echo,
+                isEcho: true
+            };
+        }
+    }
+    return target;
 }
 
 function updateBoss(enemy, player, onDamagePlayer) {
     const dx = player.x - enemy.x;
     enemy.vx = Math.sign(dx) * enemy.speed;
     enemy.vy += 0.4;
+    enemy.vy = Math.min(enemy.vy, 14);
+
     enemy.x += enemy.vx;
     enemy.y += enemy.vy;
 
-    if (enemy.y + enemy.h > 500) {
-        enemy.y = 500 - enemy.h;
-        enemy.vy = -10;
+    // Fix floor height: the ground platform top is at y = 560
+    if (enemy.y + enemy.h >= 560) {
+        enemy.y = 560 - enemy.h;
+        enemy.vy = 0;
+        enemy.grounded = true;
+
+        // Periodic jump towards the player
+        if (Math.random() < 0.02) {
+            enemy.vy = -11;
+            enemy.grounded = false;
+        }
     }
 
     enemy.attack--;
@@ -190,10 +239,10 @@ function updateBoss(enemy, player, onDamagePlayer) {
     if (enemy.hitFlash > 0) enemy.hitFlash--;
 }
 
-function fireEnemy(enemy, player) {
+function fireEnemyAtTarget(enemy, target) {
     const sx = enemy.x + enemy.w / 2;
     const sy = enemy.y + enemy.h / 2;
-    const angle = Math.atan2(player.y + player.h / 2 - sy, player.x + player.w / 2 - sx);
+    const angle = Math.atan2(target.y - sy, target.x - sx);
 
     enemyBullets.push({
         x: sx,

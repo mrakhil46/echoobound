@@ -220,7 +220,7 @@ function drawPlayer(ctx, p) {
     bodyGrad.addColorStop(1, "#0b141e");
     ctx.fillStyle = bodyGrad;
     ctx.beginPath();
-    ctx.roundRect(x + 6, y + 22, 36, 32, 8);
+    ctx.fillRect(x + 6, y + 22, 36, 32);
     ctx.fill();
 
     // Chest core
@@ -301,7 +301,7 @@ function drawEnemy(ctx, enemy) {
 function drawCrawler(ctx, e) {
     ctx.fillStyle = "#182f36";
     ctx.beginPath();
-    ctx.roundRect(e.x, e.y + 8, e.w, e.h - 8, 15);
+    ctx.fillRect(e.x, e.y + 8, e.w, e.h - 8);
     ctx.fill();
     ctx.fillStyle = "#3ed8d1";
     ctx.fillRect(e.x + 10, e.y + 18, e.w - 20, 5);
@@ -347,7 +347,7 @@ function drawSentinel(ctx, e) {
 function drawMimic(ctx, e) {
     ctx.fillStyle = "#241d38";
     ctx.beginPath();
-    ctx.roundRect(e.x, e.y, e.w, e.h, 12);
+    ctx.fillRect(e.x, e.y, e.w, e.h);
     ctx.fill();
     ctx.strokeStyle = "#a36cff";
     ctx.lineWidth = 2;

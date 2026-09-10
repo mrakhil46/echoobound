@@ -12,6 +12,7 @@ import { echoes, activateEcho, deployEcho, updateEchoes } from "./entities/echo.
 import { updateHUD, showLevelIntro, showMessage } from "./render/hud.js";
 import { draw } from "./render/draw.js";
 import { LEVELS } from "./config/levels.js";
+import { rectsOverlap } from "./utils/math.js";
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d", { alpha: false });
@@ -122,10 +123,31 @@ function update() {
     resolvePlayerPlatforms(player, oldY, world.platforms);
 
     updateEnemies(player, world.platforms, world.width, amt => damagePlayer(amt, gameOver));
-    updateBullets(world.width, enemies, damageEnemy);
+    updateBullets(world.width, enemies, (enemy, dmg) => {
+        damageEnemy(enemy, dmg, () => {
+            world.gate.open = true;
+        });
+    });
     updateEnemyBullets(world.width, player, amt => damagePlayer(amt, gameOver));
     updateEchoes();
+    
+    for (const sw of world.switches) {
+        const swBox = { x: sw.x, y: sw.y - 40, w: 28, h: 40 };
 
+        const playerOnSwitch = rectsOverlap(player, swBox);
+        const echoOnSwitch = echoes.some(e =>
+            rectsOverlap({ x: e.x - e.w / 2, y: e.y - e.h / 2, w: e.w, h: e.h }, swBox)
+        );
+
+        if (playerOnSwitch || echoOnSwitch) {
+            if (!sw.active) {
+                sw.active = true;
+                playSound("shard");
+                showMessage("SWITCH ENGAGED", 30);
+            }
+        }
+    }
+    
     checkPlayerShardCollisions(player, world.shards, () => {
         gameState.shards++;
         gainXP(80);

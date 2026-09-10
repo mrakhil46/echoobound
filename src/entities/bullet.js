@@ -4,6 +4,7 @@ import { createMuzzleFlash } from "../systems/particles.js";
 import { addShake } from "../systems/camera.js";
 import { showMessage } from "../render/hud.js";
 import { playSound } from "../systems/audio.js";
+import { echoes } from "./echo.js";
 
 export const bullets = [];
 export const enemyBullets = [];
@@ -110,6 +111,20 @@ export function updateEnemyBullets(worldWidth, player, onDamagePlayer) {
             onDamagePlayer(b.damage);
             enemyBullets.splice(i, 1);
             continue;
+        }
+
+        for (const echo of echoes) {
+            const echoHitbox = {
+                x: echo.x - echo.w / 2,
+                y: echo.y - echo.h / 2,
+                w: echo.w,
+                h: echo.h
+            };
+            if (rectsOverlap(point, echoHitbox)) {
+                echo.health -= b.damage;
+                b.life = 0; // Marks bullet for removal
+                break;
+            }
         }
 
         if (b.life <= 0 || b.x < -200 || b.x > worldWidth + 200 || b.y < -200 || b.y > 1000) {
