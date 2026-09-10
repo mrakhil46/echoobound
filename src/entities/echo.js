@@ -10,42 +10,7 @@ export const echoes = [];
 export function activateEcho() {
     if (!gameState.gameRunning) return;
 
-    if (echoes.length > 0 && !player.echoRecording) {
-    const targetEcho = echoes[echoes.length - 1];
-
-    // Read previous positions
-    const oldPlayerX = player.x;
-    const oldPlayerY = player.y;
-
-    // Teleport player to echo position, slightly raised (-4px) to guarantee landing on top of platforms
-    player.x = targetEcho.x - player.w / 2;
-    player.y = targetEcho.y - player.h / 2 - 4;
-    player.vx = 0;
-    player.vy = 0;
-    player.grounded = false;
-
-    // Move Echo to player's previous spot
-    targetEcho.x = oldPlayerX + player.w / 2;
-    targetEcho.y = oldPlayerY + player.h / 2;
-
-    // CRITICAL: Update remaining recording frames so echo playback doesn't immediately snap back
-    const dx = (oldPlayerX + player.w / 2) - targetEcho.x;
-    const dy = (oldPlayerY + player.h / 2) - targetEcho.y;
-
-    for (let i = targetEcho.frame; i < targetEcho.frames.length; i++) {
-        if (typeof targetEcho.frames[i].x === "number") {
-            targetEcho.frames[i].x += dx;
-            targetEcho.frames[i].y += dy;
-        }
-    }
-
-    createHitParticles(player.x + player.w / 2, player.y + player.h / 2);
-    playSound("shard");
-    showMessage("ECHO PHASE SWAP", 40);
-    return;
-    }
-
-    // 2. Stop recording and deploy
+    // If already recording, stop recording and deploy the captured echo.
     if (player.echoRecording) {
         player.echoRecording = false;
         if (player.echoFrames.length > 5) {
@@ -54,18 +19,55 @@ export function activateEcho() {
         }
         player.echoFrames = [];
         player.echoTimer = 0;
-    } else {
-        // 3. Start recording
-        if (player.energy < 25) {
-            showMessage("NOT ENOUGH ENERGY", 40);
-            return;
-        }
-        player.energy -= 25;
-        player.echoRecording = true;
-        player.echoFrames = [];
-        player.echoTimer = 0;
-        showMessage("RECORDING ECHO...", 40);
+        return;
     }
+
+    // If an echo exists, swap positions with the newest recorded echo.
+    if (echoes.length > 0) {
+        const targetEcho = echoes[echoes.length - 1];
+
+        const oldPlayerX = player.x;
+        const oldPlayerY = player.y;
+
+        const echoTargetX = oldPlayerX + player.w / 2;
+        const echoTargetY = oldPlayerY + player.h / 2;
+        const shiftX = echoTargetX - targetEcho.x;
+        const shiftY = echoTargetY - targetEcho.y;
+
+        player.x = targetEcho.x - player.w / 2;
+        player.y = targetEcho.y - player.h;
+        player.vx = 0;
+        player.vy = 0;
+        player.grounded = false;
+        player.justTeleported = true;
+
+        targetEcho.x = echoTargetX;
+        targetEcho.y = echoTargetY;
+
+        for (let i = targetEcho.frame; i < targetEcho.frames.length; i++) {
+            if (typeof targetEcho.frames[i].x === "number") {
+                targetEcho.frames[i].x += shiftX;
+                targetEcho.frames[i].y += shiftY;
+            }
+        }
+
+        createHitParticles(player.x + player.w / 2, player.y + player.h / 2);
+        playSound("shard");
+        showMessage("ECHO PHASE SWAP", 40);
+        return;
+    }
+
+    // Otherwise start a new recording.
+    if (player.energy < 25) {
+        showMessage("NOT ENOUGH ENERGY", 40);
+        return;
+    }
+
+    player.energy -= 25;
+    player.echoRecording = true;
+    player.echoFrames = [];
+    player.echoTimer = 0;
+    showMessage("RECORDING ECHO...", 40);
 }
 
 export function deployEcho(frames) {

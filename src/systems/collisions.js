@@ -3,12 +3,28 @@ import { rectsOverlap } from "../utils/math.js";
 export function resolvePlayerPlatforms(player, oldY, platforms) {
     player.grounded = false;
 
+    // If the player teleported this tick, ignore old swept position and snap to overlapping platform top
+    if (player.justTeleported) {
+        player.justTeleported = false;
+        for (const p of platforms) {
+            const horizontal = player.x + player.w > p.x && player.x < p.x + p.w;
+            // If feet are near or slightly below platform surface (+/- 24px)
+            const feet = player.y + player.h;
+            if (horizontal && feet >= p.y - 10 && feet <= p.y + p.h + 20) {
+                player.y = p.y - player.h;
+                player.vy = 0;
+                player.grounded = true;
+                return;
+            }
+        }
+    }
+
     for (const p of platforms) {
         const horizontal = player.x + player.w > p.x && player.x < p.x + p.w;
         const previousBottom = oldY + player.h;
         const currentBottom = player.y + player.h;
 
-        if (horizontal && player.vy >= 0 && previousBottom <= p.y && currentBottom >= p.y) {
+        if (horizontal && player.vy >= 0 && previousBottom <= p.y + 4 && currentBottom >= p.y) {
             player.y = p.y - player.h;
             player.vy = 0;
             player.grounded = true;
