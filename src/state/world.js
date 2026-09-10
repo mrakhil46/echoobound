@@ -1,7 +1,7 @@
 import { rand, randInt } from "../utils/math.js";
 import { LEVELS } from "../config/levels.js";
 import { gameState } from "./game.js";
-import { resetPlayer } from "./player.js";
+import { player, resetPlayer } from "./player.js";
 
 export const world = {
     width: 6000,
