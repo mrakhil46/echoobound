@@ -1,4 +1,4 @@
-import { clamp, rand, rectsOverlap, randInt } from "../utils/math.js";
+import { clamp, rand, rectsOverlap, randInt, lerp} from "../utils/math.js";
 import { LEVELS } from "../config/levels.js";
 import { WEAPONS } from "../config/weapons.js";
 import { gameState, triggerHitStop } from "../state/game.js";
