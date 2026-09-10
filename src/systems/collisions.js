@@ -52,8 +52,9 @@ export function resolvePlayerPlatforms(player, oldY, platforms, onPitFall) {
         if (onPitFall) onPitFall();
     }
 
-    if (player.y + player.h > 880) {
-        player.y = 560 - player.h;
+    if (player.y > 1580) {
+        player.y = 1300;
+        player.x = 200;
         player.vy = 0;
         player.grounded = true;
     }
